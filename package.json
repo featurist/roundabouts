@@ -1,0 +1,35 @@
+{
+  "name": "roundabouts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test --recursive",
+    "start": "pogo server.pogo",
+    "browserify": "browserify client.pogo -t pogoify --extension .pogo -o public/client.js",
+    "watch": "watchify client.pogo -t pogoify --extension .pogo -o public/client.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^2.9.33",
+    "brace": "^0.5.1",
+    "draggabilly": "^1.2.4",
+    "esglobals": "^1.0.1",
+    "esprima": "^2.4.1",
+    "express": "^4.13.1",
+    "plastiq": "^1.18.0",
+    "plastiq-ace-editor": "^1.0.0",
+    "plastiq-draggabilly": "^1.0.0",
+    "pogo": "^0.9.10",
+    "underscore": "^1.8.3",
+    "vdom-query": "0.0.1"
+  },
+  "devDependencies": {
+    "browserify": "^10.2.4",
+    "chai": "^3.0.0",
+    "mocha": "^2.2.5",
+    "pogoify": "^0.1.1",
+    "watchify": "^3.2.3"
+  }
+}

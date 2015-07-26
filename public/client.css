@@ -1,0 +1,77 @@
+body {
+  margin: 20px;
+  padding: 0;
+}
+h1 {
+  margin: 30px 0px;
+}
+body, input, button, select {
+  font: 12px 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+}
+pre, textarea {
+  display: block;
+  width: 598px;
+  min-height: 84px;
+  margin: 0;
+  font-family: monospace;
+  font-size: 1.1em;
+  border: 1px solid #ccc;
+  margin-bottom: 5px;
+}
+.modules {
+  position: absolute;
+  top: 20px;
+  left: 300px;
+}
+.module {
+  padding: 8px;
+  margin-bottom: 20px;
+  width: 600px;
+  background-color: #f7f7f7;
+  border-radius: 6px;
+  z-index: 3;
+}
+.module .name {
+  width: 100%;
+  font-size: 1.1em;
+  margin-bottom: 5px;
+}
+pre.compiled {
+  overflow: scroll;
+  border: 1px solid #ccc;
+  display: none;
+}
+
+.ace_gutter {
+  display: none;
+}
+.ace_active-line {
+  display: none;
+}
+
+.pass, .fail {
+  font-weight: bold;
+  padding: 5px;
+
+}
+
+ul.modules-menu {
+  margin: 0;
+  padding: 0;
+  width: 250px;
+  margin-top: 20px;
+}
+
+ul.modules-menu li {
+  list-style-type: none;
+  padding: 5px;
+  border-top: 1px solid #efefef;
+}
+
+.pass {
+  background-color: rgb(192, 249, 192);
+}
+
+.fail {
+  background-color: rgb(255, 219, 225);
+}
