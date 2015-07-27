@@ -14,13 +14,11 @@
   "dependencies": {
     "bluebird": "^2.9.33",
     "brace": "^0.5.1",
-    "draggabilly": "^1.2.4",
     "esglobals": "^1.0.1",
     "esprima": "^2.4.1",
     "express": "^4.13.1",
     "plastiq": "^1.18.0",
     "plastiq-ace-editor": "^1.0.0",
-    "plastiq-draggabilly": "^1.0.0",
     "plastiq-router": "^2.7.2",
     "pogo": "^0.9.10",
     "underscore": "^1.8.3",
