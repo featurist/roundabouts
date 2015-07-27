@@ -75,3 +75,10 @@ ul.modules-menu li {
 .fail {
   background-color: rgb(255, 219, 225);
 }
+
+.symbol {
+  display: inline;
+  margin: 4px;
+  margin-right: 6px;
+  font-size: 1.2em;
+}

@@ -6,7 +6,9 @@ Greenhouse () =
 
 Greenhouse.prototype = {
 
-  resolve (name) = resolveModule (self, name)
+  resolve (name) =
+    detectCircularDependencies (self, name)
+    resolveModule (self, name)
 
   dependenciesOf (name) = dependenciesOf (self, name)
 
@@ -61,27 +63,34 @@ dependenciesOf (repo, name) =
   m = repo.modules.(name)
   if (m)
     if (!m.dependencies @and m.body :: String)
-      m.dependencies = esglobals "function _() { #(m.body) }"
+      try
+        m.dependencies = esglobals "function _() { #(m.body) }"
+      catch (e)
+        m.dependencies = []
 
   (m @and m.dependencies) || []
 
 allDependenciesOf (repo, name) =
-  deps = dependenciesOf (repo, name)
-  for each @(dep) in (deps)
-    a = allDependenciesOf (repo, dep)
-    for each @(d) in (a)
-      if (deps.indexOf(d) == -1)
-        deps.push (d)
+  deps = []
+  stack = [].concat (dependenciesOf (repo, name))
+  while (stack.length > 0)
+    n = stack.shift()
+    if (deps.indexOf(n) == -1)
+      deps.push (n)
+      for each @(d) in (dependenciesOf(repo, n))
+        stack.push (d)
 
   deps
+
+detectCircularDependencies (repo, name) =
+  if (allDependenciesOf (repo, name).indexOf (name) > -1)
+    @throw @new Error("Circular dependency in module '#(name)'")
 
 resolveTarget (repo, target) =
   if (@not target.resolved)
 
     if (@not target.dependencies)
       target.dependencies = esglobals "function _() { #(target.body) }"
-
-    console.log('factory', target.name, target.dependencies)
 
     factory = @new Function(target.dependencies, target.body)
     resolvedDependencies = []
@@ -96,7 +105,7 @@ resolveTarget (repo, target) =
 
       resolvedDependencies.push (r)
 
-    target.resolved = factory.apply (null, resolvedDependencies)
+  target.resolved = factory.apply (null, resolvedDependencies)
 
 unresolveDependants (repo, name) =
   for each @(key) in (Object.keys(repo.modules))

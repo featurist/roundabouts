@@ -5,9 +5,17 @@ require 'brace/mode/javascript'
 require 'brace/theme/chrome'
 _ = require 'underscore'
 expect = require 'chai'.expect
+router = require 'plastiq-router'
 
 Greenhouse = require './greenhouse'
 container = @new Greenhouse()
+
+routes = {
+  root = router.route '/'
+  module = router.route '/modules/:name'
+}
+
+router.start()
 
 bodyBinding (mod) =
   {
@@ -33,11 +41,15 @@ nameBinding (mod) =
 render (model) =
   h '.client' (
     h (
-      '.add-module'
+      'form.add-module'
       h 'input' { type = 'text', binding = [model, 'newModuleName'] }
       h 'button' {
         onclick (e) =
           model.container.module { name = model.newModuleName, body = 'return true' }
+          routes.module(name: model.newModuleName).push()
+          model.newModuleName = ''
+          e.preventDefault()
+
       } 'Add Module'
     )
 
@@ -45,53 +57,70 @@ render (model) =
       [
         moduleName <- model.container.moduleNames()
         mod = model.container.modules.(moduleName)
-        h 'li a' {
-          href = "##(moduleName)"
-          onclick (e) =
-            mod.visible = @not mod.visible
-            e.preventDefault()
-        } (moduleName)
+        mod.body :: String
+        h 'li' [
+          routes.module { name = moduleName }.a (moduleName)
+        ]
+      ]
+      [
+        moduleName <- model.container.moduleNames()
+        mod = model.container.modules.(moduleName)
+        @not (mod.body :: String)
+        h 'li' [
+          routes.module { name = moduleName }.a (moduleName)
+        ]
       ]
     )
 
     h '.modules' (
-      [
-        moduleName <- model.container.moduleNames()
-        mod = model.container.modules.(moduleName)
-        mod.visible
-        h '.module' (
-          { key = mod.id.toString() }
-
-          if (mod.body :: String)
-            [
-              h 'input.name' { binding = nameBinding (mod) }
-              ace (
-                {
-                  binding = bodyBinding (mod)
-                  key = 'editor'
-                  theme = 'chrome'
-                  mode = 'javascript'
-                  showGutter = false
-                  highlightActiveLine = false
-                }
-                h('pre')
-              )
-            ]
-          else
-            h '.name' (mod.name)
-
-          h '.exports' (
-            try
-              h '.resolved' (
-                renderResolved ( model.container.resolve (moduleName) )
-              )
-            catch (e)
-              h('.fail', "ERROR: " + e.toString())
-          )
-        )
-      ]
+      routes.module @(params)
+        mod = model.container.modules.(params.name)
+        [
+          renderModule (mod)
+          [
+            dep <- model.container.allDependenciesOf(params.name)
+            m = model.container.modules.(dep)
+            m
+            renderModule (m)
+          ]
+        ]
     )
   )
+
+renderModule (mod) =
+  h '.module' (
+    { key = mod.id.toString() }
+
+    if (mod.body :: String)
+      [
+        h 'input.name' { binding = nameBinding (mod) }
+        ace (
+          {
+            binding = bodyBinding (mod)
+            key = 'editor'
+            theme = 'chrome'
+            mode = 'javascript'
+            showGutter = false
+            highlightActiveLine = false
+          }
+          h('pre')
+        )
+      ]
+    else
+      h '.name' (mod.name)
+
+    h '.exports' (
+      renderExports (mod)
+    )
+  )
+
+renderExports (mod) =
+  try
+    h '.resolved' (
+      renderResolved ( model.container.resolve (mod.name) )
+    )
+  catch (e)
+    h('.fail', "ERROR: " + e.toString())
 
 renderResolved (r) =
   if (r :: Function)
@@ -120,7 +149,14 @@ container.module {
 container.module {
   name = 'allTests'
   body = "return h('.all-tests', findAllTests.map(function(m) {\n" + \
-         "  return h('.test', { style: { padding: '10px' } }, m, greenhouse.resolve(m)) }))"
+         "  return h('.test', { style: { padding: '10px' } }, m, resolve(m)) }))"
+}
+
+container.module {
+  name = 'resolve'
+  body = "return function(name) {\n" + \
+         "  try { return greenhouse.resolve(name) }\n" + \
+         "  catch(e) { return h('.fail', e.toString()) } }"
 }
 
 container.module {
@@ -141,8 +177,24 @@ container.module {
   name = 'test'
   body = "return function(fn) {\n" + \
          "  try { fn() }\n" + \
-         "  catch (e) { return h('.fail', 'FAIL ' + e.toString()) }\n" + \
-         "  return h('.pass', 'PASS'); }"
+         "  catch (e) { return h('.fail', symbols.fail, e.toString()) }\n" + \
+         "  return h('.pass', symbols.pass); }"
+}
+
+container.module {
+  name = 'symbols'
+  body = "return { fail: symbol('&#x2715;'), pass: symbol('&#x2713;') }"
+}
+
+container.module {
+  name = 'symbol'
+  body = "return function(html) { return h.rawHtml('.symbol', html) }"
+}
+
+container.module {
+  name = 'symbolTable'
+  body = "return h('.symbols', Object.keys(symbols).map(function(key) {\n" + \
+         "  return h('.symbol', symbols[key], key); }));"
 }
 
 container.module {

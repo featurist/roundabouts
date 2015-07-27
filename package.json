@@ -21,6 +21,7 @@
     "plastiq": "^1.18.0",
     "plastiq-ace-editor": "^1.0.0",
     "plastiq-draggabilly": "^1.0.0",
+    "plastiq-router": "^2.7.2",
     "pogo": "^0.9.10",
     "underscore": "^1.8.3",
     "vdom-query": "0.0.1"
