@@ -100,8 +100,12 @@ renderModule (mod) =
             key = 'editor'
             theme = 'chrome'
             mode = 'javascript'
-            showGutter = false
-            highlightActiveLine = false
+            configure (editor) =
+              editor.setOptions {
+                maxLines = Infinity
+                showGutter = false
+                highlightActiveLine = false
+              }
           }
           h('pre')
         )

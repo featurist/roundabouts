@@ -131,8 +131,14 @@
                     key: "editor",
                     theme: "chrome",
                     mode: "javascript",
-                    showGutter: false,
-                    highlightActiveLine: false
+                    configure: function(editor) {
+                        var self = this;
+                        return editor.setOptions({
+                            maxLines: Infinity,
+                            showGutter: false,
+                            highlightActiveLine: false
+                        });
+                    }
                 }, h("pre")) ];
             } else {
                 return h(".name", mod.name);

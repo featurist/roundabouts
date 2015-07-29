@@ -11,11 +11,9 @@ body, input, button, select {
 pre, textarea {
   display: block;
   width: 598px;
-  min-height: 84px;
   margin: 0;
   font-family: monospace;
   font-size: 1.1em;
-  border: 1px solid #ccc;
   margin-bottom: 5px;
 }
 .modules {
@@ -24,12 +22,13 @@ pre, textarea {
   left: 300px;
 }
 .module {
-  padding: 8px;
+  padding: 10px;
   margin-bottom: 20px;
   width: 600px;
   background-color: #f7f7f7;
   border-radius: 6px;
   z-index: 3;
+  box-shadow: 0px 1px 1px #bbb;
 }
 .module .name {
   width: 100%;
@@ -81,4 +80,15 @@ ul.modules-menu li {
   margin: 4px;
   margin-right: 6px;
   font-size: 1.2em;
+}
+
+.ace-chrome {
+  color: black;
+  border: 2px solid white;
+  padding-bottom: 5px;
+}
+input.name {
+  border: none;
+  text-indent: 3px;
+  background-color: transparent;
 }
