@@ -7,7 +7,7 @@ _ = require 'underscore'
 expect = require 'chai'.expect
 router = require 'plastiq-router'
 
-Greenhouse = require './greenhouse'
+Greenhouse = require 'greenhouse'
 container = @new Greenhouse()
 
 routes = {
