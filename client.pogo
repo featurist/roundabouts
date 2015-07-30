@@ -81,6 +81,7 @@ render (model) =
             dep <- model.container.allDependenciesOf(params.name)
             m = model.container.modules.(dep)
             m
+            m != mod
             renderModule (m)
           ]
         ]

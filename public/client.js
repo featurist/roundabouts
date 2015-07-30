@@ -111,7 +111,9 @@
                         var m;
                         m = model.container.modules[dep];
                         if (m) {
-                            return gen7_results.push(renderModule(m));
+                            if (m !== mod) {
+                                return gen7_results.push(renderModule(m));
+                            }
                         }
                     })(dep);
                 }
@@ -30718,7 +30720,7 @@ module.exports = findGlobalsIn;
 },{}],44:[function(require,module,exports){
 (function() {
     var self = this;
-    var esglobals, Greenhouse, nextId, resolveModule, dependenciesOf, allDependenciesOf, detectCircularDependencies, resolveTarget, unresolveDependants;
+    var esglobals, Greenhouse, nextId, defineModule, resolveModuleNamed, renameModule, dependenciesOf, parseModuleDependencies, allDependenciesOf, detectCircularDependencies, resolveModule, unresolveDependants;
     esglobals = require("esglobals");
     Greenhouse = function() {
         this.modules = {};
@@ -30728,7 +30730,7 @@ module.exports = findGlobalsIn;
         resolve: function(name) {
             var self = this;
             detectCircularDependencies(self, name);
-            return resolveModule(self, name);
+            return resolveModuleNamed(self, name);
         },
         dependenciesOf: function(name) {
             var self = this;
@@ -30744,18 +30746,7 @@ module.exports = findGlobalsIn;
         },
         module: function(definition) {
             var self = this;
-            var existingModule;
-            unresolveDependants(self, "greenhouse");
-            existingModule = self.modules[definition.name];
-            if (existingModule) {
-                unresolveDependants(self, definition.name);
-                delete existingModule.resolved;
-                delete existingModule.dependencies;
-                return existingModule.body = definition.body;
-            } else {
-                definition.id = nextId();
-                return self.modules[definition.name] = definition;
-            }
+            return defineModule(self, definition);
         },
         remove: function(name) {
             var self = this;
@@ -30765,13 +30756,7 @@ module.exports = findGlobalsIn;
         },
         rename: function(oldName, newName) {
             var self = this;
-            var existing;
-            unresolveDependants(self, "greenhouse");
-            unresolveDependants(self, oldName);
-            existing = self.modules[oldName];
-            delete self.modules[oldName];
-            existing.name = newName;
-            return self.modules[newName] = existing;
+            return renameModule(self, oldName, newName);
         },
         toString: function() {
             var self = this;
@@ -30782,31 +30767,62 @@ module.exports = findGlobalsIn;
         nextId.id = (nextId.id || 0) + 1;
         return nextId.id;
     };
-    resolveModule = function(repo, name) {
-        var target;
-        target = repo.modules[name];
-        if (target) {
-            if (!target.resolved) {
-                resolveTarget(repo, target);
+    defineModule = function(repo, definition) {
+        var existingModule;
+        unresolveDependants(repo, "greenhouse");
+        existingModule = repo.modules[definition.name];
+        if (existingModule) {
+            unresolveDependants(repo, definition.name);
+            delete existingModule.resolved;
+            delete existingModule.dependencies;
+            existingModule.body = definition.body;
+        } else {
+            definition.id = nextId();
+            repo.modules[definition.name] = definition;
+        }
+        return parseModuleDependencies(repo, definition);
+    };
+    resolveModuleNamed = function(repo, name) {
+        var mod;
+        mod = repo.modules[name];
+        if (mod) {
+            if (!mod.resolved) {
+                resolveModule(repo, mod);
             }
-            return target.resolved;
+            return mod.resolved;
         } else {
             throw new Error("Module '" + name + "' does not exist");
         }
+    };
+    renameModule = function(repo, oldName, newName) {
+        var existing;
+        unresolveDependants(repo, "greenhouse");
+        unresolveDependants(repo, oldName);
+        existing = repo.modules[oldName];
+        delete repo.modules[oldName];
+        existing.name = newName;
+        return repo.modules[newName] = existing;
     };
     dependenciesOf = function(repo, name) {
         var m;
         m = repo.modules[name];
         if (m) {
             if (!m.dependencies && typeof m.body === "string") {
-                try {
-                    m.dependencies = esglobals("function _() { " + m.body + " }");
-                } catch (e) {
-                    m.dependencies = [];
-                }
+                parseModuleDependencies(repo, m);
             }
         }
         return m && m.dependencies || [];
+    };
+    parseModuleDependencies = function(repo, m) {
+        if (m.body) {
+            try {
+                return m.dependencies = esglobals("function _() { " + m.body + " }");
+            } catch (e) {
+                return m.dependencies = [];
+            }
+        } else {
+            return m.dependencies = [];
+        }
     };
     allDependenciesOf = function(repo, name) {
         var deps, stack, n, gen1_items, gen2_i, d;
@@ -30826,44 +30842,51 @@ module.exports = findGlobalsIn;
         return deps;
     };
     detectCircularDependencies = function(repo, name) {
+        var error;
         if (allDependenciesOf(repo, name).indexOf(name) > -1) {
-            throw new Error("Circular dependency in module '" + name + "'");
+            error = new Error("Circular dependency in module '" + name + "'");
+            repo.modules[name].resolved = error;
+            throw error;
         }
     };
-    resolveTarget = function(repo, target) {
-        var factory, resolvedDependencies, gen3_items, gen4_i, dep, r;
-        if (!target.resolved) {
-            if (!target.dependencies) {
-                target.dependencies = esglobals("function _() { " + target.body + " }");
-            }
-            factory = new Function(target.dependencies, target.body);
-            resolvedDependencies = [];
-            gen3_items = target.dependencies;
-            for (gen4_i = 0; gen4_i < gen3_items.length; ++gen4_i) {
-                dep = gen3_items[gen4_i];
-                try {
-                    r = resolveModule(repo, dep);
-                } catch (e) {
-                    if (e.toString().match(/Module '.+' does not exist$/)) {
-                        throw new Error("Dependency '" + dep + "' does not exist");
-                    } else {
-                        throw new Error("Failed to resolve dependency '" + dep + "'");
-                    }
-                }
-                resolvedDependencies.push(r);
-            }
+    resolveModule = function(repo, mod) {
+        var factory, resolvedDependencies, gen3_items, gen4_i, dep, r, nonExistent, errored;
+        if (!mod.dependencies) {
+            parseModuleDependencies(repo, mod);
         }
-        return target.resolved = factory.apply(null, resolvedDependencies);
+        factory = new Function(mod.dependencies, mod.body);
+        resolvedDependencies = [];
+        gen3_items = mod.dependencies;
+        for (gen4_i = 0; gen4_i < gen3_items.length; ++gen4_i) {
+            dep = gen3_items[gen4_i];
+            try {
+                r = resolveModuleNamed(repo, dep);
+            } catch (e) {
+                if (e.toString().match(/Module '.+' does not exist$/)) {
+                    nonExistent = new Error("Dependency '" + dep + "' does not exist");
+                    mod.resolved = nonExistent;
+                    throw nonExistent;
+                } else {
+                    errored = new Error("Failed to resolve dependency '" + dep + "'");
+                    mod.resolved = errored;
+                    throw errored;
+                }
+            }
+            resolvedDependencies.push(r);
+        }
+        return mod.resolved = factory.apply(null, resolvedDependencies);
     };
     unresolveDependants = function(repo, name) {
         var gen5_items, gen6_i, key, mod;
         gen5_items = Object.keys(repo.modules);
         for (gen6_i = 0; gen6_i < gen5_items.length; ++gen6_i) {
             key = gen5_items[gen6_i];
-            mod = repo.modules[key];
-            if ((mod.dependencies || []).indexOf(name) > -1) {
-                delete mod.resolved;
-                unresolveDependants(repo, mod.name);
+            if (key !== name) {
+                mod = repo.modules[key];
+                if ((mod.dependencies || []).indexOf(name) > -1) {
+                    delete mod.resolved;
+                    unresolveDependants(repo, mod.name);
+                }
             }
         }
         return void 0;
