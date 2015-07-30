@@ -195,7 +195,23 @@
     });
     container.module({
         name: "test",
-        body: "return function(fn) {\n" + "  try { fn() }\n" + "  catch (e) { return h('.fail', symbols.fail, e.toString()) }\n" + "  return h('.pass', symbols.pass); }"
+        body: "return function(fn) {\n" + "  try { fn() }\n" + "  catch (e) { return fail(e.toString()) }\n" + "  return pass(); }"
+    });
+    container.module({
+        name: "styles",
+        body: "return {\n" + "  pass: { backgroundColor: 'rgb(192, 249, 192)' },\n" + "  fail: { backgroundColor: 'rgb(255, 219, 225)' } }"
+    });
+    container.module({
+        name: "pass",
+        body: "return function(text) { return outcome('pass', text || 'PASS'); }"
+    });
+    container.module({
+        name: "fail",
+        body: "return function(text) { return outcome('fail', text); }"
+    });
+    container.module({
+        name: "outcome",
+        body: "return function(name, text) {\n" + "  return h('.' + name, { style: styles[name] }, symbols[name], text) }"
     });
     container.module({
         name: "symbols",
