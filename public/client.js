@@ -104,7 +104,7 @@
             return [ renderModule(mod), function() {
                 var gen7_results, gen8_items, gen9_i, dep;
                 gen7_results = [];
-                gen8_items = model.container.allDependenciesOf(params.name);
+                gen8_items = model.container.eventualDependenciesOf(params.name);
                 for (gen9_i = 0; gen9_i < gen8_items.length; ++gen9_i) {
                     dep = gen8_items[gen9_i];
                     (function(dep) {
@@ -30720,7 +30720,7 @@ module.exports = findGlobalsIn;
 },{}],44:[function(require,module,exports){
 (function() {
     var self = this;
-    var esglobals, Greenhouse, nextId, defineModule, resolveModuleNamed, renameModule, dependenciesOf, parseModuleDependencies, allDependenciesOf, detectCircularDependencies, resolveModule, unresolveDependants;
+    var esglobals, Greenhouse, nextId, defineModule, resolveModuleNamed, renameModule, dependantsOf, eventualDependantsOf, dependenciesOf, parseModuleDependencies, eventualDependenciesOf, detectCircularDependencies, resolveModule, unresolveDependants;
     esglobals = require("esglobals");
     Greenhouse = function() {
         this.modules = {};
@@ -30736,9 +30736,17 @@ module.exports = findGlobalsIn;
             var self = this;
             return dependenciesOf(self, name);
         },
-        allDependenciesOf: function(name) {
+        dependantsOf: function(name) {
             var self = this;
-            return allDependenciesOf(self, name);
+            return dependantsOf(self, name);
+        },
+        eventualDependenciesOf: function(name) {
+            var self = this;
+            return eventualDependenciesOf(self, name);
+        },
+        eventualDependantsOf: function(name) {
+            var self = this;
+            return eventualDependantsOf(self, name);
         },
         moduleNames: function() {
             var self = this;
@@ -30803,6 +30811,36 @@ module.exports = findGlobalsIn;
         existing.name = newName;
         return repo.modules[newName] = existing;
     };
+    dependantsOf = function(repo, name) {
+        var dependants, gen1_items, gen2_i, key, mod;
+        dependants = [];
+        gen1_items = Object.keys(repo.modules);
+        for (gen2_i = 0; gen2_i < gen1_items.length; ++gen2_i) {
+            key = gen1_items[gen2_i];
+            mod = repo.modules[key];
+            if ((mod.dependencies || []).indexOf(name) > -1) {
+                dependants.push(key);
+            }
+        }
+        return dependants;
+    };
+    eventualDependantsOf = function(repo, name) {
+        var deps, stack, n, gen3_items, gen4_i, d;
+        deps = [];
+        stack = [].concat(dependantsOf(repo, name));
+        while (stack.length > 0) {
+            n = stack.shift();
+            if (deps.indexOf(n) === -1) {
+                deps.push(n);
+                gen3_items = dependantsOf(repo, n);
+                for (gen4_i = 0; gen4_i < gen3_items.length; ++gen4_i) {
+                    d = gen3_items[gen4_i];
+                    stack.push(d);
+                }
+            }
+        }
+        return deps;
+    };
     dependenciesOf = function(repo, name) {
         var m;
         m = repo.modules[name];
@@ -30824,17 +30862,17 @@ module.exports = findGlobalsIn;
             return m.dependencies = [];
         }
     };
-    allDependenciesOf = function(repo, name) {
-        var deps, stack, n, gen1_items, gen2_i, d;
+    eventualDependenciesOf = function(repo, name) {
+        var deps, stack, n, gen5_items, gen6_i, d;
         deps = [];
         stack = [].concat(dependenciesOf(repo, name));
         while (stack.length > 0) {
             n = stack.shift();
             if (deps.indexOf(n) === -1) {
                 deps.push(n);
-                gen1_items = dependenciesOf(repo, n);
-                for (gen2_i = 0; gen2_i < gen1_items.length; ++gen2_i) {
-                    d = gen1_items[gen2_i];
+                gen5_items = dependenciesOf(repo, n);
+                for (gen6_i = 0; gen6_i < gen5_items.length; ++gen6_i) {
+                    d = gen5_items[gen6_i];
                     stack.push(d);
                 }
             }
@@ -30843,22 +30881,22 @@ module.exports = findGlobalsIn;
     };
     detectCircularDependencies = function(repo, name) {
         var error;
-        if (allDependenciesOf(repo, name).indexOf(name) > -1) {
+        if (eventualDependenciesOf(repo, name).indexOf(name) > -1) {
             error = new Error("Circular dependency in module '" + name + "'");
             repo.modules[name].resolved = error;
             throw error;
         }
     };
     resolveModule = function(repo, mod) {
-        var factory, resolvedDependencies, gen3_items, gen4_i, dep, r, nonExistent, errored;
+        var factory, resolvedDependencies, gen7_items, gen8_i, dep, r, nonExistent, errored;
         if (!mod.dependencies) {
             parseModuleDependencies(repo, mod);
         }
         factory = new Function(mod.dependencies, mod.body);
         resolvedDependencies = [];
-        gen3_items = mod.dependencies;
-        for (gen4_i = 0; gen4_i < gen3_items.length; ++gen4_i) {
-            dep = gen3_items[gen4_i];
+        gen7_items = mod.dependencies;
+        for (gen8_i = 0; gen8_i < gen7_items.length; ++gen8_i) {
+            dep = gen7_items[gen8_i];
             try {
                 r = resolveModuleNamed(repo, dep);
             } catch (e) {
@@ -30877,17 +30915,13 @@ module.exports = findGlobalsIn;
         return mod.resolved = factory.apply(null, resolvedDependencies);
     };
     unresolveDependants = function(repo, name) {
-        var gen5_items, gen6_i, key, mod;
-        gen5_items = Object.keys(repo.modules);
-        for (gen6_i = 0; gen6_i < gen5_items.length; ++gen6_i) {
-            key = gen5_items[gen6_i];
-            if (key !== name) {
-                mod = repo.modules[key];
-                if ((mod.dependencies || []).indexOf(name) > -1) {
-                    delete mod.resolved;
-                    unresolveDependants(repo, mod.name);
-                }
-            }
+        var deps, gen9_items, gen10_i, key, mod;
+        deps = eventualDependantsOf(repo, name);
+        gen9_items = deps;
+        for (gen10_i = 0; gen10_i < gen9_items.length; ++gen10_i) {
+            key = gen9_items[gen10_i];
+            mod = repo.modules[key];
+            delete mod.resolved;
         }
         return void 0;
     };
