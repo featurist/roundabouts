@@ -135,6 +135,7 @@
                     mode: "javascript",
                     configure: function(editor) {
                         var self = this;
+                        editor.$blockScrolling = Infinity;
                         return editor.setOptions({
                             maxLines: Infinity,
                             showGutter: false,

@@ -102,6 +102,7 @@ renderModule (mod) =
             theme = 'chrome'
             mode = 'javascript'
             configure (editor) =
+              editor.$blockScrolling = Infinity
               editor.setOptions {
                 maxLines = Infinity
                 showGutter = false
