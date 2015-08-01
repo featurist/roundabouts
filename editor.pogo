@@ -6,8 +6,12 @@ require 'brace/theme/chrome'
 _ = require 'underscore'
 expect = require 'chai'.expect
 router = require 'plastiq-router'
-
 Greenhouse = require 'greenhouse'
+
+mount (element) = plastiq.append (element, render, model)
+
+exports.mount = mount
+
 container = @new Greenhouse()
 
 routes = {
@@ -349,7 +353,3 @@ container.module {
   name = 'greenhouse'
   resolved = container
 }
-
-mount (element) = plastiq.append (element, render, model)
-
-module.exports.mount = mount

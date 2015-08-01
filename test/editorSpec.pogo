@@ -6,8 +6,10 @@ window._debug = require('debug')
 
 describe 'roundabouts'
 
-  beforeEach
-    div = document.createElement ('div')
+  mounted = nil
+
+  before
+    div = document.createElement('div')
     div.className = 'roundabouts'
     document.body.appendChild (div)
     editor.mount (div)
@@ -25,8 +27,11 @@ describe 'roundabouts'
       self.find(".module[data-module=#(name)] .body").element().then @(el)
         window.ace.edit(el).setValue(body)
 
-    resolveModule (name) =
+    resolvedModule (name) =
       self.find(".module[data-module=#(name)] .resolved")
+
+    addSuggestedModule (name) =
+      self.find("a", { text = "Add Module '#(name)'" }).click()
   }
 
   describe 'creating a module'
@@ -34,4 +39,9 @@ describe 'roundabouts'
     it 'evaluates the module and its dependencies'
       app.createNewModule('x', 'return 123') !
       app.createNewModule('y', 'return x + 1') !
-      app.resolveModule('y') !.shouldHave { text = "124" }
+      app.resolvedModule('y') !.shouldHave { text = "124" }
+
+    it 'resolves unresolved dependencies'
+      app.createNewModule('a', 'return b') !
+      app.addSuggestedModule 'b' !
+      app.resolvedModule('a') !.shouldHave { text = "true" }

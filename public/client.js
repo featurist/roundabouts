@@ -6,7 +6,7 @@
 },{"./editor":2}],2:[function(require,module,exports){
 (function() {
     var self = this;
-    var plastiq, h, ace, _, expect, router, Greenhouse, container, routes, bodyBinding, nameBinding, render, renderModule, renderExports, renderResolved, renderUnresolvedDependencies, model, mount;
+    var plastiq, h, ace, _, expect, router, Greenhouse, mount, container, routes, bodyBinding, nameBinding, render, renderModule, renderExports, renderResolved, renderUnresolvedDependencies, model;
     plastiq = require("plastiq");
     h = plastiq.html;
     ace = require("plastiq-ace-editor");
@@ -16,6 +16,10 @@
     expect = require("chai").expect;
     router = require("plastiq-router");
     Greenhouse = require("greenhouse");
+    mount = function(element) {
+        return plastiq.append(element, render, model);
+    };
+    exports.mount = mount;
     container = new Greenhouse();
     routes = {
         root: router.route("/"),
@@ -345,10 +349,6 @@
         name: "greenhouse",
         resolved: container
     });
-    mount = function(element) {
-        return plastiq.append(element, render, model);
-    };
-    module.exports.mount = mount;
 }).call(this);
 },{"brace/mode/javascript":4,"brace/theme/chrome":6,"chai":8,"greenhouse":45,"plastiq":52,"plastiq-ace-editor":46,"plastiq-router":47,"underscore":92,"vdom-query":93}],3:[function(require,module,exports){
 /* ***** BEGIN LICENSE BLOCK *****
