@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test --recursive",
+    "test": "karma start --single-run",
     "start": "pogo server.pogo",
     "browserify": "browserify client.pogo -t pogoify --extension .pogo -o public/client.js",
     "watch": "watchify client.pogo -t pogoify --extension .pogo -o public/client.js"
@@ -14,6 +14,7 @@
   "dependencies": {
     "bluebird": "^2.9.33",
     "brace": "^0.5.1",
+    "debug": "^2.2.0",
     "esglobals": "^1.0.1",
     "esprima": "^2.4.1",
     "express": "^4.13.1",
@@ -26,8 +27,15 @@
     "vdom-query": "0.0.1"
   },
   "devDependencies": {
-    "browserify": "^10.2.4",
+    "browser-monkey": "^1.15.2",
+    "browserify": "^11.0.1",
     "chai": "^3.0.0",
+    "html2js-browserify": "^1.0.0",
+    "karma": "^0.13.3",
+    "karma-browserify": "^4.2.1",
+    "karma-chrome-launcher": "^0.2.0",
+    "karma-mocha": "^0.2.0",
+    "karma-mocha-reporter": "^1.0.4",
     "mocha": "^2.2.5",
     "pogoify": "^0.1.1",
     "watchify": "^3.2.3"
