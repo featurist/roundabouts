@@ -92,3 +92,23 @@ input.name {
   text-indent: 3px;
   background-color: transparent;
 }
+.module .resolved {
+  overflow: scroll;
+}
+
+.module .resolved .function,
+.module .resolved .undefined,
+.module .resolved .object {
+  background-color: #eee;
+  border: 1px solid #dedede;
+  color: #777;
+  border-radius: 10px;
+  padding: 2px 8px;
+  display: inline-block;
+  font-size: 0.9em;
+  margin-top: 5px;
+}
+
+.module .action {
+  margin: 8px 0;
+}

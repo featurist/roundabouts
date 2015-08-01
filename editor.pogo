@@ -75,16 +75,17 @@ render (model) =
     h '.modules' (
       routes.module @(params)
         mod = model.container.modules.(params.name)
-        [
-          renderModule (mod)
+        if (mod)
           [
-            dep <- model.container.eventualDependenciesOf(params.name)
-            m = model.container.modules.(dep)
-            m
-            m != mod
-            renderModule (m)
+            renderModule (mod)
+            [
+              dep <- model.container.eventualDependenciesOf(params.name)
+              m = model.container.modules.(dep)
+              m
+              m != mod
+              renderModule (m)
+            ]
           ]
-        ]
     )
   )
 
@@ -118,6 +119,10 @@ renderModule (mod) =
     h '.exports' (
       renderExports (mod)
     )
+
+    h '.unresolved-dependencies' (
+      renderUnresolvedDependencies (mod.dependencies)
+    )
   )
 
 renderExports (mod) =
@@ -130,13 +135,36 @@ renderExports (mod) =
 
 renderResolved (r) =
   if (r :: Function)
-    '[function]'
+    h '.function' 'function'
   else if (r.type :: String)
     r
   else if (r == undefined)
-    '[undefined]'
+    h '.undefined' 'undefined'
+  else if (r :: Array)
+    h 'ul.array' [
+      n <- r
+      h 'li' (renderResolved (n))
+    ]
+  else if (r :: Error)
+    h '.fail' (r)
   else
-    r.toString ()
+    s = r.toString ()
+    if (s == {}.toString())
+      h '.object' 'object'
+    else
+      h '.string' (r.toString ())
+
+renderUnresolvedDependencies (dependencies) =
+  [
+    d <- dependencies
+    @not model.container.modules.(d)
+    h '.action a.unresolved-dependency' {
+      href = '#resolve'
+      onclick (e) =
+        model.container.module { name = d, body = 'return true' }
+        e.preventDefault()
+    } ("Add Module '#(d)'")
+  ]
 
 model = { container = container }
 
