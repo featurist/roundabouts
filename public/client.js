@@ -137,7 +137,7 @@
                         var self = this;
                         model.container.module({
                             name: params.name,
-                            body: "return true"
+                            body: ""
                         });
                         return e.preventDefault();
                     }
@@ -227,7 +227,7 @@
                                 var self = this;
                                 model.container.module({
                                     name: d,
-                                    body: "return true"
+                                    body: ""
                                 });
                                 return e.preventDefault();
                             }

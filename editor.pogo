@@ -94,7 +94,7 @@ render (model) =
           h 'a' {
             href = "##(params.name)"
             onclick (e) =
-              model.container.module { name = params.name, body = 'return true' }
+              model.container.module { name = params.name, body = '' }
               e.preventDefault()
           } "Add Module '#(params.name)'"
     )
@@ -172,7 +172,7 @@ renderUnresolvedDependencies (dependencies) =
     h '.action a.unresolved-dependency' {
       href = '#resolve'
       onclick (e) =
-        model.container.module { name = d, body = 'return true' }
+        model.container.module { name = d, body = '' }
         e.preventDefault()
     } ("Add Module '#(d)'")
   ]
