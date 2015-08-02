@@ -49,7 +49,7 @@ render (model) =
       h 'input' { type = 'text', binding = [model, 'newModuleName'] }
       h 'button' {
         onclick (e) =
-          model.container.module { name = model.newModuleName, body = 'return true' }
+          model.container.module { name = model.newModuleName, body = '' }
           routes.module(name: model.newModuleName).push()
           model.newModuleName = ''
           e.preventDefault()
