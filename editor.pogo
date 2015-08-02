@@ -289,6 +289,16 @@ container.module {
 }
 
 container.module {
+  name = 'demoVideo'
+  body = "return h('iframe', {\n" + \
+         "  style: { margin: '10px 0' },\n" + \
+         "  width: '500',\n" + \
+         "  height: '370',\n" + \
+         "  attributes: { allowfullscreen: 'allowfullscreen', frameborder: 'no' },\n" + \
+         "  src: 'https://www.youtube.com/embed/47Kdhp7hs_c' });"
+}
+
+container.module {
   name = 'plastiq'
   resolved = require 'plastiq'
 }
