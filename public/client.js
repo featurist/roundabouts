@@ -4,9 +4,10 @@
     require("./editor").mount(document.body);
 }).call(this);
 },{"./editor":2}],2:[function(require,module,exports){
+(function (global){
 (function() {
     var self = this;
-    var plastiq, h, ace, _, expect, router, Greenhouse, mount, container, routes, bodyBinding, nameBinding, render, renderModule, renderExports, renderResolved, renderUnresolvedDependencies, model;
+    var plastiq, h, ace, _, expect, router, Greenhouse, mount, container, routes, bodyBinding, nameBinding, render, renderModule, renderExports, renderResolved, renderUnresolvedDependencies, model, withoutGlobals, moduleCommonJs;
     plastiq = require("plastiq");
     h = plastiq.html;
     ace = require("plastiq-ace-editor");
@@ -129,6 +130,18 @@
                     }
                     return gen7_results;
                 }() ];
+            } else {
+                return h("a", {
+                    href: "#" + params.name,
+                    onclick: function(e) {
+                        var self = this;
+                        model.container.module({
+                            name: params.name,
+                            body: "return true"
+                        });
+                        return e.preventDefault();
+                    }
+                }, "Add Module '" + params.name + "'");
             }
         })));
     };
@@ -171,10 +184,10 @@
         var s;
         if (r instanceof Function) {
             return h(".function", "function");
-        } else if (typeof r.type === "string") {
-            return r;
         } else if (r === undefined) {
             return h(".undefined", "undefined");
+        } else if (typeof r.type === "string") {
+            return r;
         } else if (r instanceof Array) {
             return h("ul.array", function() {
                 var gen10_results, gen11_items, gen12_i, n;
@@ -226,17 +239,59 @@
         }();
     };
     model = {
-        container: container
+        container: container,
+        commonJsFor: function(mod) {
+            var self = this;
+            return function() {
+                var gen16_results, gen17_items, gen18_i, d;
+                gen16_results = [];
+                gen17_items = [ mod.name ].concat(withoutGlobals(self.container.eventualDependenciesOf(mod.name)));
+                for (gen18_i = 0; gen18_i < gen17_items.length; ++gen18_i) {
+                    d = gen17_items[gen18_i];
+                    (function(d) {
+                        var body, deps;
+                        body = self.commonJsBodyFor(self.container.modules[d]);
+                        deps = withoutGlobals(self.container.dependenciesOf(d));
+                        return gen16_results.push("var " + d + " = (function(" + deps + "){ " + body + " })(" + deps + ");");
+                    })(d);
+                }
+                return gen16_results;
+            }().reverse().concat([ "module.exports = " + mod.name + ";" ]).join("\n\n");
+        },
+        commonJsBodyFor: function(mod) {
+            var self = this;
+            console.log("M", mod);
+            if (mod) {
+                if (typeof mod.package === "string") {
+                    return "return require('" + mod.package + "');";
+                } else {
+                    return mod.body;
+                }
+            } else {
+                return "undefined";
+            }
+        }
+    };
+    withoutGlobals = function(dependencies) {
+        return function() {
+            var gen19_results, gen20_items, gen21_i, d;
+            gen19_results = [];
+            gen20_items = dependencies;
+            for (gen21_i = 0; gen21_i < gen20_items.length; ++gen21_i) {
+                d = gen20_items[gen21_i];
+                (function(d) {
+                    if (typeof global[d] === "undefined") {
+                        return gen19_results.push(d);
+                    }
+                })(d);
+            }
+            return gen19_results;
+        }();
+    };
+    moduleCommonJs = function(name) {
+        return model.commonJsFor(model.container.modules[name]);
     };
     window.model = model;
-    container.module({
-        name: "$",
-        resolved: require("vdom-query")
-    });
-    container.module({
-        name: "exampleReceipt",
-        body: "return receipt({ items: [menuItem('beans'), menuItem('toast')] })"
-    });
     container.module({
         name: "allTests",
         body: "return h('.all-tests', findAllTests.map(function(m) {\n" + "  return h('.test', { style: { padding: '10px' } }, m, resolve(m)) }))"
@@ -244,14 +299,6 @@
     container.module({
         name: "resolve",
         body: "return function(name) {\n" + "  try { return greenhouse.resolve(name) }\n" + "  catch(e) { return h('.fail', e.toString()) } }"
-    });
-    container.module({
-        name: "examplePassingDomTest",
-        body: "return test(function() {\n" + "  var dom =  $(function() { return exampleReceipt });\n" + "  var total = dom.find('.total').first().text();\n" + "  expect(total).to.equal('TOTAL = 1.90'); })"
-    });
-    container.module({
-        name: "exampleFailingTest",
-        body: "return test(function() {\n" + "  expect('sausages').to.equal('eggs'); });"
     });
     container.module({
         name: "test",
@@ -290,41 +337,22 @@
         body: "return function(items) {\n" + "  return _.reduce(items, function(memo, num){\n" + "    return memo + Number(num); }, 0); }"
     });
     container.module({
-        name: "menuData",
-        body: "return [\n" + "  { name: 'toast', price: '0.80' },\n" + "  { name: 'beans', price: '1.10' }\n" + "]"
-    });
-    container.module({
-        name: "menuItem",
-        body: "return function(name) {\n" + "  return _.findWhere(menuData, { name: name }) }"
-    });
-    container.module({
-        name: "receipt",
-        body: "return function(order) {\n" + "  return h('.receipt', receiptItems(order), receiptTotal(order)) }"
-    });
-    container.module({
-        name: "receiptItems",
-        body: "return function(order) {\n" + "  return _.map(order.items, function(item) {\n" + "    return h('.receipt-item', item.name, ' - ', item.price);\n" + "  });\n" + "}"
-    });
-    container.module({
-        name: "receiptTotal",
-        body: "return function(order) {\n" + "  var total = sum(_.pluck(order.items, 'price')).toFixed(2);\n" + "  return h('.total', 'TOTAL = ' + total)\n" + "}"
-    });
-    container.module({
-        name: "reflectionExample",
-        body: "return h('ul', greenhouse.moduleNames().map(function(name) {\n" + "  return h('li', name) }));"
-    });
-    container.module({
         name: "findAllTests",
         body: "return greenhouse.moduleNames().filter(function(name) {\n" + "   return greenhouse.dependenciesOf(name).indexOf('test') > -1 });"
     });
     container.module({
+        name: "plastiq",
+        resolved: require("plastiq")
+    });
+    container.module({
         name: "h",
-        resolved: require("plastiq").html
+        body: "return plastiq.html"
     });
     container.module({
         name: "_",
         resolved: _
     });
+    container.modules._.package = "underscore";
     container.module({
         name: "Number",
         resolved: Number
@@ -349,7 +377,16 @@
         name: "greenhouse",
         resolved: container
     });
+    container.module({
+        name: "$",
+        resolved: require("vdom-query")
+    });
+    container.module({
+        name: "commonjs",
+        resolved: moduleCommonJs
+    });
 }).call(this);
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"brace/mode/javascript":4,"brace/theme/chrome":6,"chai":8,"greenhouse":45,"plastiq":52,"plastiq-ace-editor":46,"plastiq-router":47,"underscore":92,"vdom-query":93}],3:[function(require,module,exports){
 /* ***** BEGIN LICENSE BLOCK *****
  * Distributed under the BSD license:
@@ -30795,7 +30832,7 @@ module.exports = findGlobalsIn;
 },{}],45:[function(require,module,exports){
 (function() {
     var self = this;
-    var esglobals, Module, Greenhouse, walk, detectCircularDependencies, unresolveDependants;
+    var esglobals, Module, Greenhouse, lastUnique, walk, detectCircularDependencies, unresolveDependants;
     esglobals = require("esglobals");
     Module = function(definition) {
         this.name = definition.name;
@@ -30974,18 +31011,29 @@ module.exports = findGlobalsIn;
             return "Greenhouse";
         }
     };
+    lastUnique = function(value, index, array) {
+        return array.lastIndexOf(value) === index;
+    };
     walk = function(first, more) {
-        var result, stack, n;
+        var result, walked, stack, n, rest, gen7_items, gen8_i, r;
         result = [];
+        walked = {};
         stack = [].concat(more(first));
         while (stack.length > 0) {
             n = stack.shift();
-            if (result.indexOf(n) === -1) {
-                result.push(n);
-                stack = stack.concat(more(n));
+            result.push(n);
+            rest = more(n);
+            gen7_items = rest;
+            for (gen8_i = 0; gen8_i < gen7_items.length; ++gen8_i) {
+                r = gen7_items[gen8_i];
+                if (stack.indexOf(r) === -1 && r !== first && !walked[n]) {
+                    stack.push(r);
+                }
+                result.push(r);
             }
+            walked[n] = true;
         }
-        return result;
+        return result.filter(lastUnique);
     };
     detectCircularDependencies = function(repo, name) {
         var error;
@@ -30997,16 +31045,16 @@ module.exports = findGlobalsIn;
     };
     unresolveDependants = function(repo, name) {
         return function() {
-            var gen7_results, gen8_items, gen9_i, d;
-            gen7_results = [];
-            gen8_items = repo.eventualDependantsOf(name);
-            for (gen9_i = 0; gen9_i < gen8_items.length; ++gen9_i) {
-                d = gen8_items[gen9_i];
+            var gen9_results, gen10_items, gen11_i, d;
+            gen9_results = [];
+            gen10_items = repo.eventualDependantsOf(name);
+            for (gen11_i = 0; gen11_i < gen10_items.length; ++gen11_i) {
+                d = gen10_items[gen11_i];
                 (function(d) {
-                    return gen7_results.push(repo.modules[d].unresolve());
+                    return gen9_results.push(repo.modules[d].unresolve());
                 })(d);
             }
-            return gen7_results;
+            return gen9_results;
         }();
     };
     module.exports = Greenhouse;

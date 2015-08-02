@@ -90,6 +90,13 @@ render (model) =
               renderModule (m)
             ]
           ]
+        else
+          h 'a' {
+            href = "##(params.name)"
+            onclick (e) =
+              model.container.module { name = params.name, body = 'return true' }
+              e.preventDefault()
+          } "Add Module '#(params.name)'"
     )
   )
 
@@ -140,10 +147,10 @@ renderExports (mod) =
 renderResolved (r) =
   if (r :: Function)
     h '.function' 'function'
-  else if (r.type :: String)
-    r
   else if (r == undefined)
     h '.undefined' 'undefined'
+  else if (r.type :: String)
+    r
   else if (r :: Array)
     h 'ul.array' [
       n <- r
@@ -170,19 +177,43 @@ renderUnresolvedDependencies (dependencies) =
     } ("Add Module '#(d)'")
   ]
 
-model = { container = container }
+model = {
+  container = container
+
+  commonJsFor (mod) =
+    [
+      d <- [mod.name].concat (withoutGlobals(
+        self.container.eventualDependenciesOf(mod.name)
+      ))
+      body = self.commonJsBodyFor(self.container.modules.(d))
+      deps = withoutGlobals(self.container.dependenciesOf(d))
+      "var #(d) = (function(#(deps)){ #(body) })(#(deps));"
+    ].reverse().concat [
+      "module.exports = #(mod.name);"
+    ].join("\n\n")
+
+  commonJsBodyFor (mod) =
+    console.log("M", mod)
+    if (mod)
+      if (mod.package :: String)
+        "return require('#(mod.package)');"
+      else
+        mod.body
+    else
+      "undefined"
+}
+
+withoutGlobals (dependencies) =
+  [
+    d <- dependencies
+    typeof (global.(d)) == 'undefined'
+    d
+  ]
+
+moduleCommonJs (name) =
+  model.commonJsFor (model.container.modules.(name))
 
 window.model = model
-
-container.module {
-  name = '$'
-  resolved = require 'vdom-query'
-}
-
-container.module {
-  name = 'exampleReceipt'
-  body = "return receipt({ items: [menuItem('beans'), menuItem('toast')] })"
-}
 
 container.module {
   name = 'allTests'
@@ -195,20 +226,6 @@ container.module {
   body = "return function(name) {\n" + \
          "  try { return greenhouse.resolve(name) }\n" + \
          "  catch(e) { return h('.fail', e.toString()) } }"
-}
-
-container.module {
-  name = 'examplePassingDomTest'
-  body = "return test(function() {\n" + \
-         "  var dom =  $(function() { return exampleReceipt });\n" + \
-         "  var total = dom.find('.total').first().text();\n" + \
-         "  expect(total).to.equal('TOTAL = 1.90'); })"
-}
-
-container.module {
-  name = 'exampleFailingTest'
-  body = "return test(function() {\n" + \
-         "  expect('sausages').to.equal('eggs'); });"
 }
 
 container.module {
@@ -266,63 +283,27 @@ container.module {
 }
 
 container.module {
-  name = 'menuData'
-  body = "return [\n" + \
-         "  { name: 'toast', price: '0.80' },\n" + \
-         "  { name: 'beans', price: '1.10' }\n" + \
-         "]"
-}
-
-container.module {
-  name = 'menuItem'
-  body = "return function(name) {\n" + \
-         "  return _.findWhere(menuData, { name: name }) }"
-}
-
-container.module {
-  name = 'receipt'
-  body = "return function(order) {\n" + \
-         "  return h('.receipt', receiptItems(order), receiptTotal(order)) }"
-}
-
-container.module {
-  name = 'receiptItems'
-  body = "return function(order) {\n" + \
-         "  return _.map(order.items, function(item) {\n" + \
-         "    return h('.receipt-item', item.name, ' - ', item.price);\n" + \
-         "  });\n" + \
-         "}"
-}
-
-container.module {
-  name = 'receiptTotal'
-  body = "return function(order) {\n" + \
-         "  var total = sum(_.pluck(order.items, 'price')).toFixed(2);\n" + \
-         "  return h('.total', 'TOTAL = ' + total)\n" + \
-         "}"
-}
-
-container.module {
-  name = 'reflectionExample'
-  body = "return h('ul', greenhouse.moduleNames().map(function(name) {\n" + \
-         "  return h('li', name) }));"
-}
-
-container.module {
   name = 'findAllTests'
   body = "return greenhouse.moduleNames().filter(function(name) {\n" + \
          "   return greenhouse.dependenciesOf(name).indexOf('test') > -1 });"
 }
 
 container.module {
+  name = 'plastiq'
+  resolved = require 'plastiq'
+}
+
+container.module {
   name = 'h'
-  resolved = require 'plastiq'.html
+  body = 'return plastiq.html'
 }
 
 container.module {
   name = '_'
   resolved = _
 }
+
+container.modules._.package = 'underscore'
 
 container.module {
   name = 'Number'
@@ -352,4 +333,14 @@ container.module {
 container.module {
   name = 'greenhouse'
   resolved = container
+}
+
+container.module {
+  name = '$'
+  resolved = require 'vdom-query'
+}
+
+container.module {
+  name = 'commonjs'
+  resolved = moduleCommonJs
 }

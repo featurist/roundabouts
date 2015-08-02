@@ -32,6 +32,10 @@ describe 'roundabouts'
 
     addSuggestedModule (name) =
       self.find("a", { text = "Add Module '#(name)'" }).click()
+
+    exportCurrentModule () =
+      self.find("button", { text = 'Export CommonJS' }).click().then @(el)
+        self.find(".commonjs")
   }
 
   describe 'creating a module'
@@ -45,3 +49,8 @@ describe 'roundabouts'
       app.createNewModule('a', 'return b') !
       app.addSuggestedModule 'b' !
       app.resolvedModule('a') !.shouldHave { text = "true" }
+
+    it.only 'exports common js modules'
+      app.createNewModule 'i' 'return j' !
+      app.createNewModule 'j' 'return 42' !
+      app.exportCurrentModule ()!.shouldHave { text = "hello" }
