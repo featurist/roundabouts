@@ -112,7 +112,7 @@
             var mod;
             mod = model.container.modules[params.name];
             if (mod) {
-                return [ renderModule(mod), function() {
+                return [ renderModule(mod, true), function() {
                     var gen7_results, gen8_items, gen9_i, dep;
                     gen7_results = [];
                     gen8_items = model.container.eventualDependenciesOf(params.name);
@@ -145,7 +145,7 @@
             }
         })));
     };
-    renderModule = function(mod) {
+    renderModule = function(mod, focus) {
         return h(".module", {
             "data-module": mod.name,
             key: mod.id.toString()
@@ -161,11 +161,14 @@
                     configure: function(editor) {
                         var self = this;
                         editor.$blockScrolling = Infinity;
-                        return editor.setOptions({
+                        editor.setOptions({
                             maxLines: Infinity,
                             showGutter: false,
                             highlightActiveLine: false
                         });
+                        if (focus) {
+                            return editor.focus();
+                        }
                     }
                 }, h("pre.body")) ];
             } else {
@@ -177,7 +180,7 @@
         try {
             return h(".resolved", renderResolved(model.container.resolve(mod.name)));
         } catch (e) {
-            return h(".fail", "ERROR: " + e.toString());
+            return h(".fail", e.toString());
         }
     };
     renderResolved = function(r) {

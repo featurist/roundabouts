@@ -87,6 +87,13 @@ ul.modules-menu li {
   border: 2px solid white;
   padding-bottom: 5px;
 }
+.ace_marker-layer .ace_bracket {
+  display: none;
+}
+.ace_hidden-cursors .ace_cursor {
+    opacity: 0!important;
+}
+
 input.name {
   border: none;
   text-indent: 3px;

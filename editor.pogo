@@ -81,7 +81,7 @@ render (model) =
         mod = model.container.modules.(params.name)
         if (mod)
           [
-            renderModule (mod)
+            renderModule (mod, true)
             [
               dep <- model.container.eventualDependenciesOf(params.name)
               m = model.container.modules.(dep)
@@ -100,7 +100,7 @@ render (model) =
     )
   )
 
-renderModule (mod) =
+renderModule (mod, focus) =
   h '.module' (
     { 'data-module' = mod.name, key = mod.id.toString() }
 
@@ -120,6 +120,8 @@ renderModule (mod) =
                 showGutter = false
                 highlightActiveLine = false
               }
+              if (focus)
+                editor.focus()
           }
           h('pre.body')
         )
@@ -142,7 +144,7 @@ renderExports (mod) =
       renderResolved ( model.container.resolve (mod.name) )
     )
   catch (e)
-    h('.fail', "ERROR: " + e.toString())
+    h('.fail', e.toString())
 
 renderResolved (r) =
   if (r :: Function)
