@@ -112,3 +112,7 @@ input.name {
 .module .action {
   margin: 8px 0;
 }
+
+a, a.visited {
+  color: blue;
+}
