@@ -183,26 +183,19 @@ model = {
   container = container
 
   commonJsFor (mod) =
-    [
+    "module.exports = (function() {\n\n" + [
       d <- [mod.name].concat (withoutGlobals(
         self.container.eventualDependenciesOf(mod.name)
       ))
-      body = self.commonJsBodyFor(self.container.modules.(d))
-      deps = withoutGlobals(self.container.dependenciesOf(d))
-      "var #(d) = (function(#(deps)){ #(body) })(#(deps));"
-    ].reverse().concat [
-      "module.exports = #(mod.name);"
-    ].join("\n\n")
-
-  commonJsBodyFor (mod) =
-    console.log("M", mod)
-    if (mod)
-      if (mod.package :: String)
-        "return require('#(mod.package)');"
+      if (self.container.modules.(d).package :: String)
+        "var #(d) = require('#(self.container.modules.(d).package)');"
       else
-        mod.body
-    else
-      "undefined"
+        body = self.container.modules.(d).body
+        deps = withoutGlobals(self.container.dependenciesOf(d))
+        "var #(d) = (function(#(deps)){ #(body) })(#(deps));"
+    ].reverse().concat [
+      "return #(mod.name);"
+    ].join("\n\n") + "\n\n})();"
 }
 
 withoutGlobals (dependencies) =
@@ -300,22 +293,25 @@ container.module {
          "  src: 'https://www.youtube.com/embed/47Kdhp7hs_c' });"
 }
 
-container.module {
-  name = 'plastiq'
-  resolved = require 'plastiq'
-}
+npmModule (required, name, npmName) =
+  console.log (name)
+  container.module {
+    name = name
+    resolved = required
+  }
+  container.modules.(name).package = npmName @or name
+
+// fugly cos browserify
+
+npmModule( require('plastiq'), 'plastiq' )
+npmModule( require('underscore'), '_', 'underscore' )
+npmModule( require('chai'), 'chai' )
+npmModule( require('vdom-query'), '$', 'vdom-query' )
 
 container.module {
   name = 'h'
   body = 'return plastiq.html'
 }
-
-container.module {
-  name = '_'
-  resolved = _
-}
-
-container.modules._.package = 'underscore'
 
 container.module {
   name = 'Number'
@@ -345,11 +341,6 @@ container.module {
 container.module {
   name = 'greenhouse'
   resolved = container
-}
-
-container.module {
-  name = '$'
-  resolved = require 'vdom-query'
 }
 
 container.module {

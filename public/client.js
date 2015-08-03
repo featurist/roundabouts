@@ -7,7 +7,7 @@
 (function (global){
 (function() {
     var self = this;
-    var plastiq, h, ace, _, expect, router, Greenhouse, mount, container, routes, bodyBinding, nameBinding, render, renderModule, renderExports, renderResolved, renderUnresolvedDependencies, model, withoutGlobals, moduleCommonJs;
+    var plastiq, h, ace, _, expect, router, Greenhouse, mount, container, routes, bodyBinding, nameBinding, render, renderModule, renderExports, renderResolved, renderUnresolvedDependencies, model, withoutGlobals, moduleCommonJs, npmModule;
     plastiq = require("plastiq");
     h = plastiq.html;
     ace = require("plastiq-ace-editor");
@@ -245,7 +245,7 @@
         container: container,
         commonJsFor: function(mod) {
             var self = this;
-            return function() {
+            return "module.exports = (function() {\n\n" + function() {
                 var gen16_results, gen17_items, gen18_i, d;
                 gen16_results = [];
                 gen17_items = [ mod.name ].concat(withoutGlobals(self.container.eventualDependenciesOf(mod.name)));
@@ -253,26 +253,19 @@
                     d = gen17_items[gen18_i];
                     (function(d) {
                         var body, deps;
-                        body = self.commonJsBodyFor(self.container.modules[d]);
-                        deps = withoutGlobals(self.container.dependenciesOf(d));
-                        return gen16_results.push("var " + d + " = (function(" + deps + "){ " + body + " })(" + deps + ");");
+                        return gen16_results.push(function() {
+                            if (typeof self.container.modules[d].package === "string") {
+                                return "var " + d + " = require('" + self.container.modules[d].package + "');";
+                            } else {
+                                body = self.container.modules[d].body;
+                                deps = withoutGlobals(self.container.dependenciesOf(d));
+                                return "var " + d + " = (function(" + deps + "){ " + body + " })(" + deps + ");";
+                            }
+                        }());
                     })(d);
                 }
                 return gen16_results;
-            }().reverse().concat([ "module.exports = " + mod.name + ";" ]).join("\n\n");
-        },
-        commonJsBodyFor: function(mod) {
-            var self = this;
-            console.log("M", mod);
-            if (mod) {
-                if (typeof mod.package === "string") {
-                    return "return require('" + mod.package + "');";
-                } else {
-                    return mod.body;
-                }
-            } else {
-                return "undefined";
-            }
+            }().reverse().concat([ "return " + mod.name + ";" ]).join("\n\n") + "\n\n})();";
         }
     };
     withoutGlobals = function(dependencies) {
@@ -347,19 +340,22 @@
         name: "demoVideo",
         body: "return h('iframe', {\n" + "  style: { margin: '10px 0' },\n" + "  width: '500',\n" + "  height: '370',\n" + "  attributes: { allowfullscreen: 'allowfullscreen', frameborder: 'no' },\n" + "  src: 'https://www.youtube.com/embed/47Kdhp7hs_c' });"
     });
-    container.module({
-        name: "plastiq",
-        resolved: require("plastiq")
-    });
+    npmModule = function(required, name, npmName) {
+        console.log(name);
+        container.module({
+            name: name,
+            resolved: required
+        });
+        return container.modules[name].package = npmName || name;
+    };
+    npmModule(require("plastiq"), "plastiq");
+    npmModule(require("underscore"), "_", "underscore");
+    npmModule(require("chai"), "chai");
+    npmModule(require("vdom-query"), "$", "vdom-query");
     container.module({
         name: "h",
         body: "return plastiq.html"
     });
-    container.module({
-        name: "_",
-        resolved: _
-    });
-    container.modules._.package = "underscore";
     container.module({
         name: "Number",
         resolved: Number
@@ -383,10 +379,6 @@
     container.module({
         name: "greenhouse",
         resolved: container
-    });
-    container.module({
-        name: "$",
-        resolved: require("vdom-query")
     });
     container.module({
         name: "commonjs",
